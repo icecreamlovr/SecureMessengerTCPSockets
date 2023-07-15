@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <pthread.h>
+#include "util.h"
 
 #define MAX_MESSAGE_LENGTH 1024
 #define SERVER_PORT 12345
@@ -44,6 +45,8 @@ void* handleClient(void* arg) {
 }
 
 int main() {
+    printf("%d + %d = %d\n", 3, 5, Sum(3, 5));
+
     // Create a socket
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket == -1) {

@@ -6,7 +6,7 @@ A secure messaging system with CLI interface. The system is implemented in C and
 
 Start one instance of server:
 ```bash
-$ gcc src/server/message_server.c -o server.o
+$ gcc src/server/message_server.c src/server/util.c -o server.o 
 $ ./server.o
 ```
 
