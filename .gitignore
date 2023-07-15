@@ -2,6 +2,7 @@
 *.swp
 .~
 thumbs.db
+build/
 
 
 # Prerequisites
