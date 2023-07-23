@@ -2,15 +2,34 @@
 
 A secure messaging system with CLI interface. The system is implemented in C and based on TCP sockets. It consists of a centralized server (server/message_server.c) and many clients (client/message_client.c). The system employs End-to-End encryption between any clients for max level of security.
 
-### To run the program:
+### Install dependencies:
 
-Start one instance of server:
+1. Install MacPorts from https://github.com/macports/macports-base/releases/tag/v2.8.1
+
+2. Run self-update:
+
+```bash
+### (open a new terminal to make sure `port` is in $PATH)
+$ sudo port selfupdate
+```
+
+3. Install OpenSSL using MacPorts:
+
+```bash
+$ sudo /opt/local/bin/port install openssl
+```
+
+### Run the program:
+
+1. 
+
+1. Compile and start one instance of server:
 ```bash
 $ gcc src/server/message_server.c -o server.o
 $ ./server.o
 ```
 
-Start two instances of client:
+2. Compile and start two instances of client:
 ```bash
 # On another computer, or another terminal window on localhost
 $ gcc src/client/message_client.c -o client.o
@@ -19,4 +38,15 @@ $ ./client.o
 # On a third computer, or a third terminal window on localhost
 $ gcc src/client/client.c -o client.o
 $ ./client.o
+```
+
+### Generate RSA key pairs
+
+```bash
+$ gcc -o rsa_keygen.o ./src/util/rsa_keygen.c -I/opt/local/include -L/opt/local/lib -lssl -lcrypto
+(ignore warnings)
+$ ./rsa_keygen.o
+(this will create private_key.pem and public_key.pem)
+$ cat private_key.pem
+$ cat public_key.pem
 ```

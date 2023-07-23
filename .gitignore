@@ -4,7 +4,6 @@
 thumbs.db
 build/
 
-
 # Prerequisites
 *.d
 
@@ -58,3 +57,8 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+# Generated files
+*.pem
+
+# IDE files
+.idea/
