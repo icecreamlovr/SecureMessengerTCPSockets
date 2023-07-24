@@ -41,7 +41,7 @@ int sendAndReceive(const char* server_addr, int server_port, char* message) {
         exit(EXIT_FAILURE);
     }
     if (bytes_received == 0) {
-        printf("Error: server disconnected.\n");
+        perror("Error: server disconnected.");
         exit(EXIT_FAILURE);
     }
 

@@ -18,20 +18,18 @@ void* handleIncomingConnection(void* arg) {
         memset(message, 0, MAX_MESSAGE_LENGTH);
         ssize_t bytes_received = recv(client_socket, message, MAX_MESSAGE_LENGTH, 0);
         if (bytes_received == -1) {
-            printf("[Client %d] Message receiving failed\n", client_socket);
-            perror("Error: Message receiving failed");
+            fprintf(stderr, "Error: [Client %d] Message receiving failed.\n", client_socket);
             exit(EXIT_FAILURE);
         } else if (bytes_received == 0) {
-            printf("[Client %d] Client disconnected.\n", client_socket);
+            printf("[DEBUG][Client %d] Client disconnected.\n", client_socket);
             break;
         }
 
-        printf("[Client %d] Received from client: %s\n", client_socket, message);
+        printf("[DEBUG][Client %d] Received from client: %s\n", client_socket, message);
 
         // Send a response back to the client
         if (send(client_socket, message, MAX_MESSAGE_LENGTH, 0) == -1) {
-            printf("[Client %d] Response sending failed\n", client_socket);
-            perror("Error: Response sending failed");
+            fprintf(stderr, "Error: [Client %d] Response sending failed.\n", client_socket);
             exit(EXIT_FAILURE);
         }
     }
@@ -44,7 +42,6 @@ void* handleIncomingConnection(void* arg) {
 
 void* startSocketServer(void* arg) {
     int server_port = *(int*)arg;
-    printf("startSocketServer.\n");
     // Create a socket
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket == -1) {
@@ -69,7 +66,7 @@ void* startSocketServer(void* arg) {
         exit(EXIT_FAILURE);
     }
 
-    printf("Server started on: %d. Waiting for clients to connect...\n", server_port);
+    printf("[DEBUG] Server started on: %d.\n", server_port);
 
     while (1) {
         struct sockaddr_in client_address;
@@ -82,7 +79,7 @@ void* startSocketServer(void* arg) {
             exit(EXIT_FAILURE);
         }
 
-        printf("[Client %d] Client connected.\n", client_socket);
+        printf("[DEBUG][Client %d] Client connected.\n", client_socket);
 
         // Create a new thread to handle this client.
         // The main thread will go back to wait for new client connection

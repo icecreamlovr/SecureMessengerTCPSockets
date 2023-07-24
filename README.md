@@ -23,18 +23,19 @@ $ sudo /opt/local/bin/port install openssl
 
 1. 
 
-1. Compile and start one instance of server:
+1. Compile and start one instance of messenger:
 ```bash
-$ gcc -o messenger.o ./src/messenger.c ./src/lib/sockets/socket_server.c ./src/lib/sockets/socket_client.c
+$ gcc -o messenger.o ./src/messenger.c ./src/lib/sockets/socket_server.c ./src/lib/sockets/socket_client.c ./src/lib/cli/cli_flags.c
 $ ./messenger.o -p 12345
 ```
 
-2. Start one instances of client:
+2. Start another instances of messenger in a different shell:
 ```bash
 # On another computer, or another terminal window on localhost
-$ ./messenger.o
-(Send messages)
+$ ./messenger.o  -p 12346
 ```
+
+3. Send message in one of the messenger terminal.
 
 ### Generate RSA key pairs
 
