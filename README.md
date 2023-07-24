@@ -50,3 +50,11 @@ $ ./rsa_keygen.o
 $ cat private_key.pem
 $ cat public_key.pem
 ```
+
+### Run sample RSA encryption decryption
+
+```bash
+$ gcc -o rsa_encrypt_decrypt.o ./src/util/rsa_encrypt_decrypt.c -I/opt/local/include -L/opt/local/lib -lssl -lcrypto
+(ignore warnings)
+$ ./rsa_encrypt_decrypt.o
+```
