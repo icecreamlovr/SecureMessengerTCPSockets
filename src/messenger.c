@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
-#include "lib/socket_server.h"
-#include "lib/socket_client.h"
+#include "lib/sockets/socket_server.h"
+#include "lib/sockets/socket_client.h"
 
 #define MAX_INTERACTIVE_CLI_LENGTH 2000
 #define MAX_MESSAGE_LENGTH 1000

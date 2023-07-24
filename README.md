@@ -25,7 +25,7 @@ $ sudo /opt/local/bin/port install openssl
 
 1. Compile and start one instance of server:
 ```bash
-$ gcc -o messenger.o ./src/messenger.c ./src/lib/socket_server.c ./src/lib/socket_client.c
+$ gcc -o messenger.o ./src/messenger.c ./src/lib/sockets/socket_server.c ./src/lib/sockets/socket_client.c
 $ ./messenger.o -p 12345
 ```
 
