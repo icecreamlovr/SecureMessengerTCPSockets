@@ -3,6 +3,6 @@
 /* ^^ these are the include guards */
 
 /* Prototypes for the functions */
-int connectToRemoteServer(const char* server_addr, int server_port);
+int sendAndReceive(const char* server_addr, int server_port, char* message);
 
 #endif

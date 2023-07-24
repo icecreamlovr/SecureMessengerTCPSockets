@@ -5,12 +5,11 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#define MAX_MESSAGE_LENGTH 1024
+#define MAX_MESSAGE_LENGTH 1000
 
-int connectToRemoteServer(const char* server_addr, int server_port) {
+int sendAndReceive(const char* server_addr, int server_port, char* message) {
     int client_socket;
     struct sockaddr_in server_address;
-    char message[MAX_MESSAGE_LENGTH];
 
     // Create a socket
     client_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -26,39 +25,24 @@ int connectToRemoteServer(const char* server_addr, int server_port) {
 
     // Connect to the server
     if (connect(client_socket, (struct sockaddr*)&server_address, sizeof(server_address)) == -1) {
-        perror("CError: onnection failed");
+        perror("Error: failed connecting to remote server.");
         exit(EXIT_FAILURE);
     }
 
-    printf("Successfully connected to the server.\n");
+    if (send(client_socket, message, MAX_MESSAGE_LENGTH, 0) == -1) {
+        perror("Error: failed sending message to remote server.");
+        exit(EXIT_FAILURE);
+    }
 
-    while (1) {
-        // Get a message from the user
-        printf("> ");
-        fgets(message, sizeof(message), stdin);
-
-        // Remove the trailing newline character
-        message[strcspn(message, "\n")] = '\0';
-
-        // Send the message to the server
-        if (send(client_socket, message, strlen(message), 0) == -1) {
-            perror("Error: Message sending failed");
-            exit(EXIT_FAILURE);
-        }
-
-        // Receive a response from the server
-        memset(message, 0, sizeof(message));
-        ssize_t bytes_received = recv(client_socket, message, sizeof(message), 0);
-        if (bytes_received == -1) {
-            perror("Error: Response receiving failed");
-            exit(EXIT_FAILURE);
-        }
-        if (bytes_received == 0) {
-            printf("Server disconnected.\n");
-            break;
-        }
-
-        printf("Received from server: %s\n", message);
+    memset(message, 0, sizeof(*message) * MAX_MESSAGE_LENGTH);
+    ssize_t bytes_received = recv(client_socket, message, MAX_MESSAGE_LENGTH, 0);
+    if (bytes_received == -1) {
+        perror("Error: failed receiving response from remote server.");
+        exit(EXIT_FAILURE);
+    }
+    if (bytes_received == 0) {
+        printf("Error: server disconnected.\n");
+        exit(EXIT_FAILURE);
     }
 
     // Close the socket

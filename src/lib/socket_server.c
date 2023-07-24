@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#define MAX_MESSAGE_LENGTH 1024
+#define MAX_MESSAGE_LENGTH 1000
 #define MAX_LISTEN_QUEUE 10
 
 void* handleIncomingConnection(void* arg) {
@@ -15,8 +15,8 @@ void* handleIncomingConnection(void* arg) {
 
     while (1) {
         // Receive a message from the client
-        memset(message, 0, sizeof(message));
-        ssize_t bytes_received = recv(client_socket, message, sizeof(message), 0);
+        memset(message, 0, MAX_MESSAGE_LENGTH);
+        ssize_t bytes_received = recv(client_socket, message, MAX_MESSAGE_LENGTH, 0);
         if (bytes_received == -1) {
             printf("[Client %d] Message receiving failed\n", client_socket);
             perror("Error: Message receiving failed");
@@ -29,7 +29,7 @@ void* handleIncomingConnection(void* arg) {
         printf("[Client %d] Received from client: %s\n", client_socket, message);
 
         // Send a response back to the client
-        if (send(client_socket, message, strlen(message), 0) == -1) {
+        if (send(client_socket, message, MAX_MESSAGE_LENGTH, 0) == -1) {
             printf("[Client %d] Response sending failed\n", client_socket);
             perror("Error: Response sending failed");
             exit(EXIT_FAILURE);
