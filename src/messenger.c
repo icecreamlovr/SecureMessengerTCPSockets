@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include "lib/cli/cli_flags.h"
 #include "lib/crypto/rsa_store.h"
+#include "lib/crypto/rsa_encryption.h"
 #include "lib/sockets/socket_server.h"
 #include "lib/sockets/socket_client.h"
 
@@ -52,6 +53,7 @@ int main(int argc, char *argv[]) {
     char user_input[MAX_INTERACTIVE_CLI_LENGTH];
     printf("Type 'message <IP> <PORT> <MESSAGE>' to send message to an user on specific IP and port.\n");
     printf("Type 'keygen' to regenerate RSA key pairs.\n");
+    printf("Type 'test' to run encryption and decryption on a simple message to verify the key pairs.\n");
     printf("Type 'exit' to quit.\n");
 
     while (1) {
@@ -81,7 +83,11 @@ int main(int argc, char *argv[]) {
         } else if (strncmp(user_input, "keygen", 6) == 0) {
             generateKeyPairsAndSaveAsPem(base_file_directory, host_pub_key_file_name, host_priv_key_file_name);
             continue;
-        }
+        } else if (strncmp(user_input, "test", 4) == 0) {
+             testEncryptionDecryption(
+               "hello this is test", base_file_directory, host_pub_key_file_name, host_priv_key_file_name);
+             continue;
+         }
         printf("Unrecognized input.\n");
     }
 

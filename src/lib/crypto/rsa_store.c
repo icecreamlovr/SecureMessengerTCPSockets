@@ -90,3 +90,45 @@ void generateKeyPairsAndSaveAsPem(
         pubkey_full_path,
         privkey_full_path);
 }
+
+// Read the public key from PEM file as openssl RSA* struct.
+RSA* readPublicKeyFromFile(const char* base_dir, const char* pubkey_file_name) {
+    char pubkey_full_path[1024];
+    snprintf(pubkey_full_path, sizeof(pubkey_full_path), "%s/%s", base_dir, pubkey_file_name);
+    FILE* pub_key_file = fopen(pubkey_full_path, "r");
+    if (pub_key_file == NULL) {
+        fprintf(stderr, "Error: Failed to open public key file: %s\n", pubkey_full_path);
+        return NULL;
+    }
+    RSA* rsa_key = PEM_read_RSAPublicKey(pub_key_file, NULL, NULL, NULL);
+    if (rsa_key == NULL) {
+        fprintf(stderr, "Error: Failed to read public key from file\n");
+        ERR_print_errors_fp(stderr);
+        fclose(pub_key_file);
+        return NULL;
+    }
+    fclose(pub_key_file);
+
+    return rsa_key;
+}
+// Read the private key from PEM file as openssl RSA* struct.
+RSA* readPrivateKeyFromFile(const char* base_dir, const char* privkey_file_name) {
+    char privkey_full_path[1024];
+    snprintf(privkey_full_path, sizeof(privkey_full_path), "%s/%s", base_dir, privkey_file_name);
+    FILE* priv_key_file = fopen(privkey_full_path, "r");
+    if (priv_key_file == NULL) {
+        fprintf(stderr, "Error: Failed to open private key file: %s\n", privkey_full_path);
+        return 0;
+    }
+
+    RSA* rsa_key = PEM_read_RSAPrivateKey(priv_key_file, NULL, NULL, NULL);
+    if (rsa_key == NULL) {
+        fprintf(stderr, "Error: Failed to read private key from file\n");
+        ERR_print_errors_fp(stderr);
+        fclose(priv_key_file);
+        return 0;
+    }
+
+    fclose(priv_key_file);
+    return rsa_key;
+}

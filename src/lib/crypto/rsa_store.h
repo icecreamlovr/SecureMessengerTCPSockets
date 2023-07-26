@@ -1,3 +1,5 @@
+#include <openssl/rsa.h>
+
 #ifndef RSA_STORE_H_INCLUDED
 #define RSA_STORE_H_INCLUDED
 /* ^^ these are the include guards */
@@ -11,5 +13,9 @@ char* getRsaPrivateKeyFileName(const char* host_ip, int host_port);
 
 void generateKeyPairsAndSaveAsPem(
   const char* base_dir, const char* pubkey_file_name, const char* privkey_file_name);
+
+RSA* readPublicKeyFromFile(const char* base_dir, const char* pubkey_file_name);
+
+RSA* readPrivateKeyFromFile(const char* base_dir, const char* privkey_file_name);
 
 #endif

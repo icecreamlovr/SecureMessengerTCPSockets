@@ -25,7 +25,8 @@ $ sudo /opt/local/bin/port install openssl
 
 1. Compile and start one instance of messenger:
 ```bash
-$ gcc -o messenger.o ./src/messenger.c ./src/lib/sockets/socket_server.c ./src/lib/sockets/socket_client.c ./src/lib/cli/cli_flags.c ./src/lib/crypto/rsa_store.c -I/opt/local/include -L/opt/local/lib -lssl -lcrypto
+$ gcc -o messenger.o ./src/messenger.c ./src/lib/sockets/socket_server.c ./src/lib/sockets/socket_client.c ./src/lib/cli/cli_flags.c ./src/lib/crypto/rsa_store.c ./src/lib/crypto/rsa_encryption.c -I/opt/local/include -L/opt/local/lib -lssl -lcrypto
+# (ignore warnings)
 $ ./messenger.o -p 12345
 # This will create a local folder user_12345 if it doesn't already exist.
 # The folder will be used to store user's private key and public key.
