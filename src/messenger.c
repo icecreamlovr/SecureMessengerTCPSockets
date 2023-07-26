@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include "lib/cli/cli_flags.h"
+#include "lib/crypto/rsa_store.h"
 #include "lib/sockets/socket_server.h"
 #include "lib/sockets/socket_client.h"
 
@@ -15,11 +16,23 @@ int main(int argc, char *argv[]) {
     int host_port = getListeningPortFromCliFlags(argc, argv);
     printf("[DEBUG] Listening port value: %d\n", host_port);
 
-    // Use user_<port> as default name of the folder if unspecified.
-    char default_base_file_directory[10];
+    // Create base folder if it doesn't already exist. Use user_<port> as default name of the folder if unspecified.
+    char* base_file_directory;
+    char default_base_file_directory[20];
     snprintf(default_base_file_directory, sizeof(default_base_file_directory), "user_%d", host_port);
-    char* base_file_directory = getFileDirectoryFromCliFlags(argc, argv, default_base_file_directory);
+    base_file_directory = getFileDirectoryFromCliFlags(argc, argv, default_base_file_directory);
     printf("[DEBUG] File directory value: %s\n", base_file_directory);
+    int created = createRsaDirectoryIfNotExist(base_file_directory);
+    if (created == 0) {
+        printf("[DEBUG] Directory %s already exists\n", base_file_directory);
+    } else {
+        printf("[DEBUG] Created directory %s\n", base_file_directory);
+    }
+
+    // Format file names for the host public key and private key.
+    char* host_pub_key_file_name = getRsaPublicKeyFileName(host_ip, host_port);
+    char* host_priv_key_file_name = getRsaPrivateKeyFileName(host_ip, host_port);
+    printf("[DEBUG] Host key pair file names: %s, %s\n", host_pub_key_file_name, host_priv_key_file_name);
 
     // Start socket server.
     // The server is started in a separate thread, so that the main thread can go back to wait for user inputs.
@@ -37,7 +50,8 @@ int main(int argc, char *argv[]) {
 
     // Handle user inputs.
     char user_input[MAX_INTERACTIVE_CLI_LENGTH];
-    printf("Type 'message <IP> <PORT> <MESSAGE>' send message to an user on specific IP and port.\n");
+    printf("Type 'message <IP> <PORT> <MESSAGE>' to send message to an user on specific IP and port.\n");
+    printf("Type 'keygen' to regenerate RSA key pairs.\n");
     printf("Type 'exit' to quit.\n");
 
     while (1) {
@@ -63,6 +77,9 @@ int main(int argc, char *argv[]) {
             } else {
                 printf("Invalid message input. Please use the format 'message <IP> <PORT> <MESSAGE>'.\n");
             }
+            continue;
+        } else if (strncmp(user_input, "keygen", 6) == 0) {
+            generateKeyPairsAndSaveAsPem(base_file_directory, host_pub_key_file_name, host_priv_key_file_name);
             continue;
         }
         printf("Unrecognized input.\n");
