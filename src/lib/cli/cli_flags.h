@@ -5,4 +5,6 @@
 /* Prototypes for the functions */
 int getListeningPortFromCliFlags(int argc, char *argv[]);
 
+char* getFileDirectoryFromCliFlags(int argc, char* argv[], const char* default_value);
+
 #endif

@@ -2,7 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-int getListeningPortFromCliFlags(int argc, char *argv[]) {
+/* Get value of "--listen-port" or "-p" flag. The value needs to be between 1025 and 65535.*/
+int getListeningPortFromCliFlags(int argc, char* argv[]) {
     int port = -1;
 
     // Check if the "listen-port" flag is provided
@@ -10,7 +11,6 @@ int getListeningPortFromCliFlags(int argc, char *argv[]) {
         if (strcmp(argv[i], "--listen-port") == 0 || strcmp(argv[i], "-p") == 0) {
             // Check if there's a value provided after the flag
             if (i + 1 < argc) {
-                // Print the value of the port flag
                 port = atoi(argv[i + 1]);
             } else {
                 fprintf(stderr, "Error: Listening port flag provided without a value.\n");
@@ -32,4 +32,32 @@ int getListeningPortFromCliFlags(int argc, char *argv[]) {
     }
 
     return port;
+}
+
+/* Get value of "--file-directory" or "-f" flag. If unspecified, use the default value.*/
+char* getFileDirectoryFromCliFlags(int argc, char* argv[], const char* default_value) {
+    char* file_directory = NULL;
+
+    // Check if the "file-directory" flag is provided
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--file-directory") == 0 || strcmp(argv[i], "-f") == 0) {
+            // Check if there's a value provided after the flag
+            if (i + 1 < argc) {
+                // Allocate memory for the string.
+                file_directory = (char*)malloc(strlen(argv[i + 1]) + 1);
+                strcpy(file_directory, argv[i + 1]);
+            } else {
+                fprintf(stderr, "Error: file directory flag provided without a value.\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+
+    // If --file-directory is not specified, use default value instead.
+    if (file_directory == NULL) {
+        file_directory = (char*)malloc(strlen(default_value) + 1);
+        strcpy(file_directory, default_value);
+    }
+
+    return file_directory;
 }
