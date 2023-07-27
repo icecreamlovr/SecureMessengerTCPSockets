@@ -57,7 +57,7 @@ int testEncryptionDecryption(
         return 1;
     }
 
-    printf("[DEBUG] Encrypted message: ");
+    printf("[DEBUG] Encrypted message1 (%d): ", (int)encrypted_msg_len);
     for (size_t i = 0; i < encrypted_msg_len; i++) {
         printf("%02X", encrypted_msg[i]);
     }

@@ -9,6 +9,23 @@
 #define MAX_MESSAGE_LENGTH 1000
 #define MAX_LISTEN_QUEUE 10
 
+// Simple listener that prints the message and sends a response.
+void simpleMessageListener(int client_socket, int length, const char* message) {
+    // Print the received message from client
+    printf("[Client %d]: (%d bytes) %s\n", client_socket, length, message);
+    printf("[DEBUG][Client %d]: Received %d bytes :", client_socket, length);
+    for (int i = 0; i < length; i++) {
+        printf("%02X", message[i]);
+    }
+    printf("<end>\n");
+
+    // Send a response back to the client
+    if (send(client_socket, message, MAX_MESSAGE_LENGTH, 0) == -1) {
+        fprintf(stderr, "Error: [Client %d] Response sending failed.\n", client_socket);
+        exit(EXIT_FAILURE);
+    }
+}
+
 void* handleIncomingConnection(void* arg) {
     int client_socket = *((int*)arg);
     char message[MAX_MESSAGE_LENGTH];
@@ -25,13 +42,7 @@ void* handleIncomingConnection(void* arg) {
             break;
         }
 
-        printf("[DEBUG][Client %d] Received from client: %s\n", client_socket, message);
-
-        // Send a response back to the client
-        if (send(client_socket, message, MAX_MESSAGE_LENGTH, 0) == -1) {
-            fprintf(stderr, "Error: [Client %d] Response sending failed.\n", client_socket);
-            exit(EXIT_FAILURE);
-        }
+        simpleMessageListener(client_socket, bytes_received, message);
     }
 
     // Close the client socket

@@ -7,6 +7,29 @@
 
 #define MAX_MESSAGE_LENGTH 1000
 
+void simpleSendAndReceive(int client_socket, char* message) {
+    // send(client_socket, message, MAX_MESSAGE_LENGTH, 0)
+    if (send(client_socket, message, strlen(message) + 1, 0) == -1) {
+        perror("Error: failed sending message to remote server.");
+        exit(EXIT_FAILURE);
+    }
+
+    memset(message, 0, sizeof(*message) * MAX_MESSAGE_LENGTH);
+    ssize_t bytes_received = recv(client_socket, message, MAX_MESSAGE_LENGTH, 0);
+    if (bytes_received == -1) {
+        perror("Error: failed receiving response from remote server.");
+        exit(EXIT_FAILURE);
+    }
+    if (bytes_received == 0) {
+        perror("Error: server disconnected.");
+        exit(EXIT_FAILURE);
+    }
+}
+
+// + 2 buffer, 1 for send and 1 for receive
+// + rename this to sendAndReceiveBasic
+// + wrap inside another function, which can encrypt msg, and decrypt response
+// + free, or memset, outside of the function call
 int sendAndReceive(const char* server_addr, int server_port, char* message) {
     int client_socket;
     struct sockaddr_in server_address;
@@ -25,28 +48,12 @@ int sendAndReceive(const char* server_addr, int server_port, char* message) {
 
     // Connect to the server
     if (connect(client_socket, (struct sockaddr*)&server_address, sizeof(server_address)) == -1) {
-        perror("Error: failed connecting to remote server.");
-        exit(EXIT_FAILURE);
+        perror("[DEBUG] Failed connecting to remote server.");
+        return 0;
     }
 
-    if (send(client_socket, message, MAX_MESSAGE_LENGTH, 0) == -1) {
-        perror("Error: failed sending message to remote server.");
-        exit(EXIT_FAILURE);
-    }
+    simpleSendAndReceive(client_socket, message);
 
-    memset(message, 0, sizeof(*message) * MAX_MESSAGE_LENGTH);
-    ssize_t bytes_received = recv(client_socket, message, MAX_MESSAGE_LENGTH, 0);
-    if (bytes_received == -1) {
-        perror("Error: failed receiving response from remote server.");
-        exit(EXIT_FAILURE);
-    }
-    if (bytes_received == 0) {
-        perror("Error: server disconnected.");
-        exit(EXIT_FAILURE);
-    }
-
-    // Close the socket
     close(client_socket);
-
-    return 0;
+    return 1;
 }

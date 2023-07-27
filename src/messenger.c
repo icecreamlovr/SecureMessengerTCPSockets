@@ -12,6 +12,13 @@
 #define MAX_INTERACTIVE_CLI_LENGTH 2000
 #define MAX_MESSAGE_LENGTH 1000
 
+void printUsage() {
+    printf("Type 'message <IP> <PORT> <MESSAGE>' to send message to an user on specific IP and port.\n");
+    printf("Type 'keygen' to generate or regenerate RSA key pairs.\n");
+    printf("Type 'test' to run encryption and decryption on a simple message to verify the key pairs.\n");
+    printf("Type 'exit' to quit.\n");
+}
+
 int main(int argc, char *argv[]) {
     const char* host_ip = "127.0.0.1";
     int host_port = getListeningPortFromCliFlags(argc, argv);
@@ -49,19 +56,18 @@ int main(int argc, char *argv[]) {
 
     sleep(1);
 
-    // Handle user inputs.
-    char user_input[MAX_INTERACTIVE_CLI_LENGTH];
-    printf("Type 'message <IP> <PORT> <MESSAGE>' to send message to an user on specific IP and port.\n");
-    printf("Type 'keygen' to regenerate RSA key pairs.\n");
-    printf("Type 'test' to run encryption and decryption on a simple message to verify the key pairs.\n");
-    printf("Type 'exit' to quit.\n");
+    printUsage();
 
+    // Handle user inputs in a loop.
+    // Every time, prompt for user input, match it with one of the predefined directives, and execute.
+    char user_input[MAX_INTERACTIVE_CLI_LENGTH];
     while (1) {
         // Prompt for user input.
-        // Remove the trailing newline character from input.
         // printf("> ");
+        // Remove the trailing newline character from input.
         fgets(user_input, sizeof(user_input), stdin);
         user_input[strcspn(user_input, "\n")] = '\0';
+        int success = 0;
 
         if (strcmp(user_input, "exit") == 0) {
             // User wants to exit.
@@ -69,26 +75,37 @@ int main(int argc, char *argv[]) {
             break;
         } else if (strncmp(user_input, "message ", 8) == 0) {
             // User wants to message another user.
+            // Example: message 127.0.0.1 12345 hello!!!
             char recipient_ip[100];
             int recipient_port;
             char message[MAX_MESSAGE_LENGTH];
             if (sscanf(user_input, "message %99s %d %[^\n]", recipient_ip, &recipient_port, message) == 3) {\
-                printf("[DEBUG] sending %s\n", message);
-                sendAndReceive(recipient_ip, recipient_port, message);
-                printf("[DEBUG] received from server: %s\n", message);
+                printf("[DEBUG] sending %s (%d)\n", message, strlen(message));
+                int result = sendAndReceive(recipient_ip, recipient_port, message);
+                if (result == 1) {
+                    printf("[DEBUG] received from server: %s\n", message);
+                    success = 1;
+                } else {
+                    printf("Failed to connect to %s:%d.\n", recipient_ip, recipient_port);
+                }
             } else {
-                printf("Invalid message input. Please use the format 'message <IP> <PORT> <MESSAGE>'.\n");
+                printf("Invalid input. Please use the format 'message <IP> <PORT> <MESSAGE>'.\n");
             }
-            continue;
         } else if (strncmp(user_input, "keygen", 6) == 0) {
+            // User wants to generate / regenerate RSA key pairs.
+            success = 1;
             generateKeyPairsAndSaveAsPem(base_file_directory, host_pub_key_file_name, host_priv_key_file_name);
-            continue;
         } else if (strncmp(user_input, "test", 4) == 0) {
-             testEncryptionDecryption(
-               "hello this is test", base_file_directory, host_pub_key_file_name, host_priv_key_file_name);
-             continue;
-         }
-        printf("Unrecognized input.\n");
+            // User wants to verify the generated key paris.
+            success = 1;
+            testEncryptionDecryption(
+                "hello this is test", base_file_directory, host_pub_key_file_name, host_priv_key_file_name);
+        }
+
+        if (success == 0) {
+            printf("Unrecognized input. Please try a different command.\n");
+            printUsage();
+        }
     }
 
     return 0;
