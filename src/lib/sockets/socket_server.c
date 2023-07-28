@@ -14,11 +14,12 @@
 #define MAX_MESSAGE_LENGTH 1000
 #define MAX_LISTEN_QUEUE 10
 
-void encryptedMessageListener(RSA* decrypt_privkey, const char* other_pubkey_dir, int client_socket, int length, unsigned char* message) {
-    char* encrypt_pubkey_file = getRsaPublicKeyFileName("127.0.0.1", 12347);
-    RSA* encrypt_pubkey = readPublicKeyFromFile(other_pubkey_dir, encrypt_pubkey_file);
-
+void encryptedMessageListener(char* local_keypair_dir, char* server_privkey_filename, const char* other_pubkey_dir, int client_socket, int length, unsigned char* message) {
+    RSA* decrypt_privkey = readPrivateKeyFromFile(local_keypair_dir, server_privkey_filename);
     char *decrypted_msg = NULL;
+    printf("[DEBUG] Decrypt key (begin)\n");
+    PEM_write_RSAPrivateKey(stdout, decrypt_privkey, NULL, NULL, 0, NULL, NULL);
+    printf("[DEBUG] Encrypt key (end)\n");
 
     // Decrypt the received message with the private key
     if (!decryptRSA(decrypt_privkey, (unsigned char*)message, length, &decrypted_msg)) {
@@ -35,13 +36,17 @@ void encryptedMessageListener(RSA* decrypt_privkey, const char* other_pubkey_dir
     size_t encrypted_msg_len;
     strcpy(message, (unsigned char*)response);
 
-    printf("[DEBUG] Encrypt key for response (begin)\n");
-    PEM_write_RSAPublicKey(stdout, encrypt_pubkey);
-    printf("[DEBUG] Encrypt key for response (end)\n");
+    // printf("[DEBUG] Encrypt key for response (begin)\n");
+    // PEM_write_RSAPublicKey(stdout, encrypt_pubkey);
+    // printf("[DEBUG] Encrypt key for response (end)\n");
+
+    char* encrypt_pubkey_file = getRsaPublicKeyFileName("127.0.0.1", 12347);
+    RSA* encrypt_pubkey = readPublicKeyFromFile(other_pubkey_dir, encrypt_pubkey_file);
 
     if (!encryptRSA(encrypt_pubkey, response, &encrypted_msg, &encrypted_msg_len)) {
         fprintf(stderr, "Error: [Client %d]: Encryption failed\n", client_socket);
         // exit(EXIT_FAILURE);
+        free(encrypt_pubkey_file);
         return;
     }
 
@@ -55,6 +60,7 @@ void encryptedMessageListener(RSA* decrypt_privkey, const char* other_pubkey_dir
     if (send(client_socket, encrypted_msg, encrypted_msg_len, 0) == -1) {
         fprintf(stderr, "Error: [Client %d]: Response sending failed.\n", client_socket);
         // exit(EXIT_FAILURE);
+        free(encrypt_pubkey_file);
         return;
     }
 }
@@ -79,21 +85,24 @@ void simpleMessageListener(int client_socket, int length, const char* message) {
 
 struct HandleIncomingConnectionArgs {
     int client_socket;
-    RSA* server_privkey;
-    RSA* server_pubkey;
+    char* server_pubkey_filename;
+    char* server_privkey_filename;
+    char* local_keypair_dir;
     char* other_pubkey_dir;
 };
 
 void* handleIncomingConnection(void* arg) {
     struct HandleIncomingConnectionArgs* args = (struct HandleIncomingConnectionArgs*)arg;
     int client_socket = args->client_socket;
-    RSA* server_privkey = args->server_privkey;
-    RSA* server_pubkey = args->server_pubkey;
+    char* server_pubkey_filename = args->server_pubkey_filename;
+    char* server_privkey_filename = args->server_privkey_filename;
+    char* local_keypair_dir = args->local_keypair_dir;
     char* other_pubkey_dir = args->other_pubkey_dir;
 
     unsigned char message[MAX_MESSAGE_LENGTH];
 
     while (1) {
+
         // Receive a message from the client
         memset(message, 0, MAX_MESSAGE_LENGTH);
         ssize_t bytes_received = recv(client_socket, message, MAX_MESSAGE_LENGTH, 0);
@@ -112,7 +121,8 @@ void* handleIncomingConnection(void* arg) {
         printf("<end>\n");
 
         // simpleMessageListener(client_socket, bytes_received, message);
-        encryptedMessageListener(server_privkey, other_pubkey_dir, client_socket, bytes_received, message);
+        // RSA* server_privkey = readPrivateKeyFromFile(local_keypair_dir, server_privkey_filename);
+        encryptedMessageListener(local_keypair_dir, server_privkey_filename, other_pubkey_dir, client_socket, bytes_received, message);
     }
 
     // Close the client socket
@@ -124,8 +134,9 @@ void* handleIncomingConnection(void* arg) {
 void* startSocketServer(void* arg) {
     struct StartSocketServerArgs* args = (struct StartSocketServerArgs*)arg;
     int server_port = args->server_port;
-    RSA* server_privkey = args->server_privkey;
-    RSA* server_pubkey = args->server_pubkey;
+    char* server_pubkey_filename = args->server_pubkey_filename;
+    char* server_privkey_filename = args->server_privkey_filename;
+    char* local_keypair_dir = args->local_keypair_dir;
     char* other_pubkey_dir = args->other_pubkey_dir;
 
     // Create a socket
@@ -172,8 +183,9 @@ void* startSocketServer(void* arg) {
         // The main thread will go back to wait for new client connection
         struct HandleIncomingConnectionArgs connThreadArgs;
         connThreadArgs.client_socket = client_socket;
-        connThreadArgs.server_privkey = server_privkey;
-        connThreadArgs.server_pubkey = server_pubkey;
+        connThreadArgs.server_pubkey_filename = server_pubkey_filename;
+        connThreadArgs.server_privkey_filename = server_privkey_filename;
+        connThreadArgs.local_keypair_dir = local_keypair_dir;
         connThreadArgs.other_pubkey_dir = other_pubkey_dir;
         pthread_t thread_id;
         if (pthread_create(&thread_id, NULL, handleIncomingConnection, (void*)&connThreadArgs) != 0) {

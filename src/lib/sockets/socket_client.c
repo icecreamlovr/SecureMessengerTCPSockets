@@ -11,11 +11,6 @@
 
 #define MAX_MESSAGE_LENGTH 1000
 
-// + 2 buffer, 1 for send and 1 for receive
-// + rename this to sendAndReceiveBasic
-// + wrap inside another function, which can encrypt msg, and decrypt response
-// + free, or memset, outside of the function call
-
 int sendAndReceive(const char* server_addr, int server_port, unsigned char* message, int send_len, int* recv_len) {
     int client_socket;
     struct sockaddr_in server_address;
@@ -67,10 +62,14 @@ int sendAndReceive(const char* server_addr, int server_port, unsigned char* mess
     return 1;
 }
 
-int encryptedSendAndReceive(RSA* encrypt_pubkey, RSA* decrypt_privkey, const char* server_addr, int server_port, char* message) {
+int encryptedSendAndReceive(char* base_dir, char* other_pubkey_dir, char* pubkey_file, char* privkey_file, const char* server_addr, int server_port, char* message) {
+    RSA* encrypt_pubkey = readPublicKeyFromFile(other_pubkey_dir, pubkey_file);
+    printf("[DEBUG] encrypt key (begin)\n");
+    PEM_write_RSAPublicKey(stdout, encrypt_pubkey);
+    printf("[DEBUG] encrypt key (end)\n");
+
     unsigned char *encrypted_msg = NULL;
     size_t encrypted_msg_len;
-    char *decrypted_msg = NULL;
 
     // Encrypt the sending message with the public key
     if (!encryptRSA(encrypt_pubkey, message, &encrypted_msg, &encrypted_msg_len)) {
@@ -108,11 +107,13 @@ int encryptedSendAndReceive(RSA* encrypt_pubkey, RSA* decrypt_privkey, const cha
     }
     printf("\n");
 
-    printf("[DEBUG] Decrypt key for response (begin)\n");
-    PEM_write_RSAPrivateKey(stdout, decrypt_privkey, NULL, NULL, 0, NULL, NULL);
-    printf("[DEBUG] Decrypt key for response (end)\n");
+    RSA* decrypt_privkey = readPrivateKeyFromFile(base_dir, privkey_file);
+    // printf("[DEBUG] Decrypt key for response1 (begin)\n");
+    // PEM_write_RSAPrivateKey(stdout, decrypt_privkey, NULL, NULL, 0, NULL, NULL);
+    // printf("[DEBUG] Decrypt key for response (end)\n");
 
     // Decrypt the received message with the private key
+    char *decrypted_msg = NULL;
     if (!decryptRSA(decrypt_privkey, encrypted_msg, recv_len, &decrypted_msg)) {
         fprintf(stderr, "[DEBUG] Decryption failed\n");
         free(encrypted_msg);

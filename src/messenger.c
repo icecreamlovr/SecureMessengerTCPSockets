@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
 #include "lib/cli/cli_flags.h"
 #include "lib/crypto/rsa_store.h"
 #include "lib/crypto/rsa_encryption.h"
@@ -42,15 +44,16 @@ int main(int argc, char *argv[]) {
     char* host_pubkey_filename = getRsaPublicKeyFileName(host_ip, host_port);
     char* host_privkey_filename = getRsaPrivateKeyFileName(host_ip, host_port);
     printf("[DEBUG] Host key pair file names: %s, %s\n", host_pubkey_filename, host_privkey_filename);
-    RSA* server_pubkey = readPublicKeyFromFile(base_file_directory, host_pubkey_filename);
-    RSA* server_privkey = readPrivateKeyFromFile(base_file_directory, host_privkey_filename);
+    // RSA* server_pubkey = readPublicKeyFromFile(base_file_directory, host_pubkey_filename);
+    // RSA* server_privkey = readPrivateKeyFromFile(base_file_directory, host_privkey_filename);
 
     // Start socket server.
     // The server is started in a separate thread, so that the main thread can go back to wait for user inputs.
     struct StartSocketServerArgs serverThreadArgs;
     serverThreadArgs.server_port = host_port;
-    serverThreadArgs.server_privkey = server_privkey;
-    serverThreadArgs.server_pubkey = server_pubkey;
+    serverThreadArgs.server_pubkey_filename = host_pubkey_filename;
+    serverThreadArgs.server_privkey_filename = host_privkey_filename;
+    serverThreadArgs.local_keypair_dir = (char*)base_file_directory;
     serverThreadArgs.other_pubkey_dir = (char*)OTHER_PUBKEY_DIR;
     pthread_t thread_id;
     if (pthread_create(&thread_id, NULL, startSocketServer, (void*)&serverThreadArgs) != 0) {
@@ -73,6 +76,7 @@ int main(int argc, char *argv[]) {
         // Prompt for user input.
         // printf("> ");
         // Remove the trailing newline character from input.
+        memset(user_input, 0, MAX_INTERACTIVE_CLI_LENGTH);
         fgets(user_input, sizeof(user_input), stdin);
         user_input[strcspn(user_input, "\n")] = '\0';
         int success = 0;
@@ -92,16 +96,21 @@ int main(int argc, char *argv[]) {
                 // int recv_len = 0;
                 // int result = sendAndReceive(recipient_ip, recipient_port, message, strlen(message) + 1, &recv_len);
                 char* recipient_pubkey_file = getRsaPublicKeyFileName(recipient_ip, recipient_port);
-                RSA* recipient_pubkey = readPublicKeyFromFile(OTHER_PUBKEY_DIR, recipient_pubkey_file);
-                RSA* host_privkey = readPrivateKeyFromFile(base_file_directory, host_privkey_filename);
-                int result = encryptedSendAndReceive(recipient_pubkey, host_privkey, recipient_ip, recipient_port, message);
+                // RSA* recipient_pubkey = readPublicKeyFromFile(OTHER_PUBKEY_DIR, recipient_pubkey_file);
+                // RSA* sender_privkey = readPrivateKeyFromFile(base_file_directory, host_privkey_filename);
+                // printf("[DEBUG] sender_privkey (begin)\n");
+                // PEM_write_RSAPrivateKey(stdout, sender_privkey, NULL, NULL, 0, NULL, NULL);
+                // printf("[DEBUG] sender_privkey (end)\n");
+                // int result = encryptedSendAndReceive(recipient_pubkey, sender_privkey, recipient_ip, recipient_port, message);
+                int result = encryptedSendAndReceive(base_file_directory, OTHER_PUBKEY_DIR, recipient_pubkey_file, host_privkey_filename, recipient_ip, recipient_port, message);
                 if (result == 1) {
                     // printf("[DEBUG] received from server (%d): %s\n", recv_len, message);
-                    printf("[DEBUG] received from server (%d): %s\n", (int)strlen(message), message);
+                    // printf("[DEBUG] received from server (%d): %s\n", (int)strlen(message), message);
                     success = 1;
                 } else {
                     printf("Failed to send message to %s:%d.\n", recipient_ip, recipient_port);
                 }
+                free(recipient_pubkey_file);
             } else {
                 printf("Invalid input. Please use the format 'message <IP> <PORT> <MESSAGE>'.\n");
             }

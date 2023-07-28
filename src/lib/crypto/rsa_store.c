@@ -123,7 +123,7 @@ RSA* readPrivateKeyFromFile(const char* base_dir, const char* privkey_file_name)
 
     RSA* rsa_key = PEM_read_RSAPrivateKey(priv_key_file, NULL, NULL, NULL);
     if (rsa_key == NULL) {
-        fprintf(stderr, "Error: Failed to read private key from file\n");
+        fprintf(stderr, "Error: Failed to read private key from file %s\n", privkey_full_path);
         ERR_print_errors_fp(stderr);
         fclose(priv_key_file);
         return 0;
