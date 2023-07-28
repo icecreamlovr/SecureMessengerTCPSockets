@@ -13,14 +13,14 @@
 void simpleMessageListener(int client_socket, int length, const char* message) {
     // Print the received message from client
     printf("[Client %d]: (%d bytes) %s\n", client_socket, length, message);
-    printf("[DEBUG][Client %d]: Received %d bytes :", client_socket, length);
+    printf("[DEBUG][Client %d]: Received %d bytes: <start>", client_socket, length);
     for (int i = 0; i < length; i++) {
         printf("%02X", message[i]);
     }
     printf("<end>\n");
 
     // Send a response back to the client
-    if (send(client_socket, message, MAX_MESSAGE_LENGTH, 0) == -1) {
+    if (send(client_socket, message, length, 0) == -1) {
         fprintf(stderr, "Error: [Client %d] Response sending failed.\n", client_socket);
         exit(EXIT_FAILURE);
     }

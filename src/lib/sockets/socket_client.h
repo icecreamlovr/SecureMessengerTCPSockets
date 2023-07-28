@@ -3,6 +3,6 @@
 /* ^^ these are the include guards */
 
 /* Prototypes for the functions */
-int sendAndReceive(const char* server_addr, int server_port, char* message);
+int sendAndReceive(const char* server_addr, int server_port, char* message, int send_len, int* recv_len);
 
 #endif

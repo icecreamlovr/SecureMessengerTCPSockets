@@ -80,10 +80,11 @@ int main(int argc, char *argv[]) {
             int recipient_port;
             char message[MAX_MESSAGE_LENGTH];
             if (sscanf(user_input, "message %99s %d %[^\n]", recipient_ip, &recipient_port, message) == 3) {\
-                printf("[DEBUG] sending %s (%d)\n", message, strlen(message));
-                int result = sendAndReceive(recipient_ip, recipient_port, message);
+                printf("[DEBUG] From user %s(%d), %s:%d\n", message, (int)strlen(message), recipient_ip, recipient_port);
+                int recv_len = 0;
+                int result = sendAndReceive(recipient_ip, recipient_port, message, strlen(message) + 1, &recv_len);
                 if (result == 1) {
-                    printf("[DEBUG] received from server: %s\n", message);
+                    printf("[DEBUG] received from server (%d): %s\n", recv_len, message);
                     success = 1;
                 } else {
                     printf("Failed to connect to %s:%d.\n", recipient_ip, recipient_port);

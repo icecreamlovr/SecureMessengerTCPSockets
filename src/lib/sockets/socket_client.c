@@ -7,30 +7,11 @@
 
 #define MAX_MESSAGE_LENGTH 1000
 
-void simpleSendAndReceive(int client_socket, char* message) {
-    // send(client_socket, message, MAX_MESSAGE_LENGTH, 0)
-    if (send(client_socket, message, strlen(message) + 1, 0) == -1) {
-        perror("Error: failed sending message to remote server.");
-        exit(EXIT_FAILURE);
-    }
-
-    memset(message, 0, sizeof(*message) * MAX_MESSAGE_LENGTH);
-    ssize_t bytes_received = recv(client_socket, message, MAX_MESSAGE_LENGTH, 0);
-    if (bytes_received == -1) {
-        perror("Error: failed receiving response from remote server.");
-        exit(EXIT_FAILURE);
-    }
-    if (bytes_received == 0) {
-        perror("Error: server disconnected.");
-        exit(EXIT_FAILURE);
-    }
-}
-
 // + 2 buffer, 1 for send and 1 for receive
 // + rename this to sendAndReceiveBasic
 // + wrap inside another function, which can encrypt msg, and decrypt response
 // + free, or memset, outside of the function call
-int sendAndReceive(const char* server_addr, int server_port, char* message) {
+int sendAndReceive(const char* server_addr, int server_port, char* message, int send_len, int* recv_len) {
     int client_socket;
     struct sockaddr_in server_address;
 
@@ -52,7 +33,30 @@ int sendAndReceive(const char* server_addr, int server_port, char* message) {
         return 0;
     }
 
-    simpleSendAndReceive(client_socket, message);
+    // send(client_socket, message, MAX_MESSAGE_LENGTH, 0)
+    if (send(client_socket, message, send_len, 0) == -1) {
+        perror("Error: failed sending message to remote server.");
+        exit(EXIT_FAILURE);
+    }
+
+    memset(message, 0, sizeof(*message) * MAX_MESSAGE_LENGTH);
+    ssize_t bytes_received = recv(client_socket, message, MAX_MESSAGE_LENGTH, 0);
+    if (bytes_received == -1) {
+        perror("Error: failed receiving response from remote server.");
+        exit(EXIT_FAILURE);
+    }
+    if (bytes_received == 0) {
+        perror("Error: server disconnected.");
+        exit(EXIT_FAILURE);
+    }
+    *recv_len = (int)bytes_received;
+
+
+    printf("[DEBUG]: Received %d bytes: <start>", (int)bytes_received);
+    for (int i = 0; i < bytes_received; i++) {
+        printf("%02X", message[i]);
+    }
+    printf("<end>\n");
 
     close(client_socket);
     return 1;
