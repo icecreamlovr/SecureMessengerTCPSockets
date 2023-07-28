@@ -4,6 +4,10 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
+#include "../crypto/rsa_encryption.h"
+#include "../crypto/rsa_store.h"
 
 #define MAX_MESSAGE_LENGTH 1000
 
@@ -11,7 +15,8 @@
 // + rename this to sendAndReceiveBasic
 // + wrap inside another function, which can encrypt msg, and decrypt response
 // + free, or memset, outside of the function call
-int sendAndReceive(const char* server_addr, int server_port, char* message, int send_len, int* recv_len) {
+
+int sendAndReceive(const char* server_addr, int server_port, unsigned char* message, int send_len, int* recv_len) {
     int client_socket;
     struct sockaddr_in server_address;
 
@@ -59,5 +64,65 @@ int sendAndReceive(const char* server_addr, int server_port, char* message, int 
     printf("<end>\n");
 
     close(client_socket);
+    return 1;
+}
+
+int encryptedSendAndReceive(RSA* encrypt_pubkey, RSA* decrypt_privkey, const char* server_addr, int server_port, char* message) {
+    unsigned char *encrypted_msg = NULL;
+    size_t encrypted_msg_len;
+    char *decrypted_msg = NULL;
+
+    // Encrypt the sending message with the public key
+    if (!encryptRSA(encrypt_pubkey, message, &encrypted_msg, &encrypted_msg_len)) {
+        fprintf(stderr, "Error: Encryption failed\n");
+        exit(EXIT_FAILURE);
+    }
+    printf("[DEBUG] Sending encrypted message (%d): ", (int)encrypted_msg_len);
+    for (size_t i = 0; i < encrypted_msg_len; i++) {
+        printf("%02X", encrypted_msg[i]);
+    }
+    printf("\n");
+
+    // Debug: verify we can decrypt the message
+    // char recipient_dir[20];
+    // snprintf(recipient_dir, sizeof(recipient_dir), "user_%d", server_port);
+    // char* recipient_privkey_filename = getRsaPrivateKeyFileName(server_addr, server_port);
+    // RSA* recipient_privkey = readPrivateKeyFromFile(recipient_dir, recipient_privkey_filename);
+    // if (!decryptRSA(recipient_privkey, encrypted_msg, encrypted_msg_len, &decrypted_msg)) {
+    //     fprintf(stderr, "Error: Verify decryption failed\n");
+    //     free(encrypted_msg);
+    //     return 1;
+    // }
+    // printf("[DEBUG] verify - key: %s/%s. result: %s\n", recipient_dir, recipient_privkey_filename, decrypted_msg);
+    // free(decrypted_msg);
+
+    // Send through sockets
+    int recv_len = 0;
+    int send_result = sendAndReceive(server_addr, server_port, encrypted_msg, encrypted_msg_len, &recv_len);
+    if (send_result != 1) {
+        return send_result;
+    }
+    printf("[DEBUG] Receiving encrypted message (%d): ", (int)recv_len);
+    for (size_t i = 0; i < recv_len; i++) {
+        printf("%02X", encrypted_msg[i]);
+    }
+    printf("\n");
+
+    printf("[DEBUG] Decrypt key for response (begin)\n");
+    PEM_write_RSAPrivateKey(stdout, decrypt_privkey, NULL, NULL, 0, NULL, NULL);
+    printf("[DEBUG] Decrypt key for response (end)\n");
+
+    // Decrypt the received message with the private key
+    if (!decryptRSA(decrypt_privkey, encrypted_msg, recv_len, &decrypted_msg)) {
+        fprintf(stderr, "[DEBUG] Decryption failed\n");
+        free(encrypted_msg);
+        // exit(EXIT_FAILURE);
+        return 0;
+    }
+    printf("[DEBUG] Decryption finished\n");
+    printf("[DEBUG] Decrypted message: %s\n", decrypted_msg);
+
+    free(encrypted_msg);
+    free(decrypted_msg);
     return 1;
 }

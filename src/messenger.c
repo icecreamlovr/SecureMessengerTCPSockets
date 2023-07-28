@@ -25,6 +25,7 @@ int main(int argc, char *argv[]) {
     printf("[DEBUG] Listening port value: %d\n", host_port);
 
     // Create base folder if it doesn't already exist. Use user_<port> as default name of the folder if unspecified.
+    const char* OTHER_PUBKEY_DIR = "public";
     char* base_file_directory;
     char default_base_file_directory[20];
     snprintf(default_base_file_directory, sizeof(default_base_file_directory), "user_%d", host_port);
@@ -38,14 +39,21 @@ int main(int argc, char *argv[]) {
     }
 
     // Format file names for the host public key and private key.
-    char* host_pub_key_file_name = getRsaPublicKeyFileName(host_ip, host_port);
-    char* host_priv_key_file_name = getRsaPrivateKeyFileName(host_ip, host_port);
-    printf("[DEBUG] Host key pair file names: %s, %s\n", host_pub_key_file_name, host_priv_key_file_name);
+    char* host_pubkey_filename = getRsaPublicKeyFileName(host_ip, host_port);
+    char* host_privkey_filename = getRsaPrivateKeyFileName(host_ip, host_port);
+    printf("[DEBUG] Host key pair file names: %s, %s\n", host_pubkey_filename, host_privkey_filename);
+    RSA* server_pubkey = readPublicKeyFromFile(base_file_directory, host_pubkey_filename);
+    RSA* server_privkey = readPrivateKeyFromFile(base_file_directory, host_privkey_filename);
 
     // Start socket server.
     // The server is started in a separate thread, so that the main thread can go back to wait for user inputs.
+    struct StartSocketServerArgs serverThreadArgs;
+    serverThreadArgs.server_port = host_port;
+    serverThreadArgs.server_privkey = server_privkey;
+    serverThreadArgs.server_pubkey = server_pubkey;
+    serverThreadArgs.other_pubkey_dir = (char*)OTHER_PUBKEY_DIR;
     pthread_t thread_id;
-    if (pthread_create(&thread_id, NULL, startSocketServer, (void*)&host_port) != 0) {
+    if (pthread_create(&thread_id, NULL, startSocketServer, (void*)&serverThreadArgs) != 0) {
         perror("Error: Server thread creation failed");
         exit(EXIT_FAILURE);
     }
@@ -81,13 +89,18 @@ int main(int argc, char *argv[]) {
             char message[MAX_MESSAGE_LENGTH];
             if (sscanf(user_input, "message %99s %d %[^\n]", recipient_ip, &recipient_port, message) == 3) {\
                 printf("[DEBUG] From user %s(%d), %s:%d\n", message, (int)strlen(message), recipient_ip, recipient_port);
-                int recv_len = 0;
-                int result = sendAndReceive(recipient_ip, recipient_port, message, strlen(message) + 1, &recv_len);
+                // int recv_len = 0;
+                // int result = sendAndReceive(recipient_ip, recipient_port, message, strlen(message) + 1, &recv_len);
+                char* recipient_pubkey_file = getRsaPublicKeyFileName(recipient_ip, recipient_port);
+                RSA* recipient_pubkey = readPublicKeyFromFile(OTHER_PUBKEY_DIR, recipient_pubkey_file);
+                RSA* host_privkey = readPrivateKeyFromFile(base_file_directory, host_privkey_filename);
+                int result = encryptedSendAndReceive(recipient_pubkey, host_privkey, recipient_ip, recipient_port, message);
                 if (result == 1) {
-                    printf("[DEBUG] received from server (%d): %s\n", recv_len, message);
+                    // printf("[DEBUG] received from server (%d): %s\n", recv_len, message);
+                    printf("[DEBUG] received from server (%d): %s\n", (int)strlen(message), message);
                     success = 1;
                 } else {
-                    printf("Failed to connect to %s:%d.\n", recipient_ip, recipient_port);
+                    printf("Failed to send message to %s:%d.\n", recipient_ip, recipient_port);
                 }
             } else {
                 printf("Invalid input. Please use the format 'message <IP> <PORT> <MESSAGE>'.\n");
@@ -95,12 +108,12 @@ int main(int argc, char *argv[]) {
         } else if (strncmp(user_input, "keygen", 6) == 0) {
             // User wants to generate / regenerate RSA key pairs.
             success = 1;
-            generateKeyPairsAndSaveAsPem(base_file_directory, host_pub_key_file_name, host_priv_key_file_name);
+            generateKeyPairsAndSaveAsPem(base_file_directory, host_pubkey_filename, host_privkey_filename);
         } else if (strncmp(user_input, "test", 4) == 0) {
             // User wants to verify the generated key paris.
             success = 1;
             testEncryptionDecryption(
-                "hello this is test", base_file_directory, host_pub_key_file_name, host_priv_key_file_name);
+                "hello this is test", base_file_directory, host_pubkey_filename, host_privkey_filename);
         }
 
         if (success == 0) {
