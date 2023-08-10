@@ -19,9 +19,6 @@ extern int debug_mode;
 void encryptedMessageListener(char* local_keypair_dir, char* server_privkey_filename, const char* other_pubkey_dir, int client_socket, int length, unsigned char* message) {
     RSA* decrypt_privkey = readPrivateKeyFromFile(local_keypair_dir, server_privkey_filename);
     char *decrypted_msg = NULL;
-//    printf("[DEBUG] Decrypt key (begin)\n");
-//    PEM_write_RSAPrivateKey(stdout, decrypt_privkey, NULL, NULL, 0, NULL, NULL);
-//    printf("[DEBUG] Encrypt key (end)\n");
 
     // Decrypt the received message with the private key
     if (!decryptRSA(decrypt_privkey, (unsigned char*)message, length, &decrypted_msg)) {
@@ -31,51 +28,12 @@ void encryptedMessageListener(char* local_keypair_dir, char* server_privkey_file
     }
 
     printf("[Received from Client %d]: %s\n", client_socket, decrypted_msg);
-
-    // Encrypt the response with the public key
-//    char response[] = "received";
-//    unsigned char *encrypted_msg = NULL;
-//    size_t encrypted_msg_len;
-//    strcpy(message, (unsigned char*)response);
-
-    // printf("[DEBUG] Encrypt key for response (begin)\n");
-    // PEM_write_RSAPublicKey(stdout, encrypt_pubkey);
-    // printf("[DEBUG] Encrypt key for response (end)\n");
-
-//    char* encrypt_pubkey_file = getRsaPublicKeyFileName("127.0.0.1", 12347);
-//    RSA* encrypt_pubkey = readPublicKeyFromFile(other_pubkey_dir, encrypt_pubkey_file);
-//
-//    if (!encryptRSA(encrypt_pubkey, response, &encrypted_msg, &encrypted_msg_len)) {
-//        fprintf(stderr, "Error: [Client %d]: Encryption failed\n", client_socket);
-//        // exit(EXIT_FAILURE);
-//        free(encrypt_pubkey_file);
-//        return;
-//    }
-//
-////    printf("[DEBUG] Sending encrypted message (%d): ", (int)encrypted_msg_len);
-//    for (size_t i = 0; i < encrypted_msg_len; i++) {
-//        printf("%02X", encrypted_msg[i]);
-//    }
-//    printf("\n");
-//
-//    // Send a response back to the client
-//    if (send(client_socket, encrypted_msg, encrypted_msg_len, 0) == -1) {
-//        fprintf(stderr, "Error: [Client %d]: Response sending failed.\n", client_socket);
-//        // exit(EXIT_FAILURE);
-//        free(encrypt_pubkey_file);
-//        return;
-//    }
 }
 
 // Simple listener that prints the message and sends a response.
 void simpleMessageListener(int client_socket, int length, const char* message) {
     // Print the received message from client
     printf("[Received from client %d]: %s\n", client_socket, message);
-//    printf("[DEBUG][Client %d]: Received %d bytes: <start>", client_socket, length);
-//    for (int i = 0; i < length; i++) {
-//        printf("%02X", message[i]);
-//    }
-//    printf("<end>\n");
 
     // Send a response back to the client
     if (send(client_socket, message, length, 0) == -1) {
