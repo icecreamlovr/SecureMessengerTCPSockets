@@ -12,7 +12,7 @@ char* getRsaPublicKeyFileName(const char* host_ip, int host_port);
 char* getRsaPrivateKeyFileName(const char* host_ip, int host_port);
 
 void generateKeyPairsAndSaveAsPem(
-  const char* base_dir, const char* pubkey_file_name, const char* privkey_file_name);
+  const char* base_dir, const char* public_dir, const char* pubkey_file_name, const char* privkey_file_name);
 
 RSA* readPublicKeyFromFile(const char* base_dir, const char* pubkey_file_name);
 

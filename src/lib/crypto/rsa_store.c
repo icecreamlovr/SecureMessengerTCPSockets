@@ -44,7 +44,7 @@ char* getRsaPrivateKeyFileName(const char* host_ip, int host_port) {
 
 // Generate RSA public key and private key, and store them to target files in PEM format.
 void generateKeyPairsAndSaveAsPem(
-  const char* base_dir, const char* pubkey_file_name, const char* privkey_file_name) {
+  const char* base_dir, const char* public_dir, const char* pubkey_file_name, const char* privkey_file_name) {
     RSA* rsa_key_pair = RSA_generate_key(2048, RSA_F4, NULL, NULL);
     if (rsa_key_pair == NULL) {
         perror("Error: Failed to generate RSA key pair");
@@ -68,6 +68,23 @@ void generateKeyPairsAndSaveAsPem(
     }
     fclose(pub_key_file);
 
+    // Print the public key also to the public directory
+    char pubkey_full_path_2[1024];
+    snprintf(pubkey_full_path_2, sizeof(pubkey_full_path_2), "%s/%s", public_dir, pubkey_file_name);
+    FILE* pub_key_file_2 = fopen(pubkey_full_path_2, "w");
+    if (pub_key_file_2 == NULL) {
+        perror("Error: Failed to open public key file");
+        RSA_free(rsa_key_pair);
+        exit(EXIT_FAILURE);
+    }
+    if (PEM_write_RSAPublicKey(pub_key_file_2, rsa_key_pair) != 1) {
+        perror("Error: Failed to write public key to file");
+        RSA_free(rsa_key_pair);
+        fclose(pub_key_file_2);
+        exit(EXIT_FAILURE);
+    }
+    fclose(pub_key_file_2);
+
     // Print the private key in PEM format
     char privkey_full_path[1024];
     snprintf(privkey_full_path, sizeof(privkey_full_path), "%s/%s", base_dir, privkey_file_name);
@@ -86,7 +103,7 @@ void generateKeyPairsAndSaveAsPem(
     fclose(priv_key_file);
     RSA_free(rsa_key_pair);
     printf(
-        "[DEBUG] RSA key pair generated and saved to '%s' and '%s'\n",
+        "[INFO] RSA key pair generated and saved to '%s' and '%s'\n",
         pubkey_full_path,
         privkey_full_path);
 }

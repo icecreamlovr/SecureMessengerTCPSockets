@@ -31,6 +31,8 @@ $ ./messenger.o -p 12345
 # This will create a local folder user_12345 if it doesn't already exist.
 # The folder will be used to store user's private key and public key.
 # The folder name can be changed by specifying "-f <folder_name>"
+keygen
+# this will generate key pairs for this client, in folder user_12345.
 ```
 
 2. Start another instances of messenger in a different shell:
@@ -38,9 +40,17 @@ $ ./messenger.o -p 12345
 # On another computer, or another terminal window on localhost
 $ ./messenger.o  -p 12346
 # This will also create a local folder user_12346 if it doesn't already exist.
+keygen
+# this will generate key pairs for this client, in folder user_12346.
 ```
 
-3. Send message in one of the messenger terminal.
+3. Send message
+```bash
+# In 12345's window: 
+message 127.0.0.1 12347 hello this is 12345!
+# In 12347's window: 
+message 127.0.0.1 12345 hi how are you?
+```
 
 ### Generate RSA key pairs
 

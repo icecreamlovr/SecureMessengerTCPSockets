@@ -14,17 +14,26 @@
 #define MAX_INTERACTIVE_CLI_LENGTH 2000
 #define MAX_MESSAGE_LENGTH 1000
 
+int debug_mode = 0;
+
 void printUsage() {
     printf("Type 'message <IP> <PORT> <MESSAGE>' to send message to an user on specific IP and port.\n");
     printf("Type 'keygen' to generate or regenerate RSA key pairs.\n");
     printf("Type 'test' to run encryption and decryption on a simple message to verify the key pairs.\n");
+    printf("Type 'debug on/off' to toggle debug mode to on/off.\n");
     printf("Type 'exit' to quit.\n");
 }
 
 int main(int argc, char *argv[]) {
+    debug_mode = getDebugFromCliFlags(argc, argv, 0);
+    if (debug_mode) {
+        printf("[DEBUG] Debug mode is on\n");
+    }
+
     const char* host_ip = "127.0.0.1";
     int host_port = getListeningPortFromCliFlags(argc, argv);
-    printf("[DEBUG] Listening port value: %d\n", host_port);
+    printf("[INFO] Listening port value: %d\n", host_port);
+
 
     // Create base folder if it doesn't already exist. Use user_<port> as default name of the folder if unspecified.
     const char* OTHER_PUBKEY_DIR = "public";
@@ -32,18 +41,23 @@ int main(int argc, char *argv[]) {
     char default_base_file_directory[20];
     snprintf(default_base_file_directory, sizeof(default_base_file_directory), "user_%d", host_port);
     base_file_directory = getFileDirectoryFromCliFlags(argc, argv, default_base_file_directory);
-    printf("[DEBUG] File directory value: %s\n", base_file_directory);
     int created = createRsaDirectoryIfNotExist(base_file_directory);
     if (created == 0) {
-        printf("[DEBUG] Directory %s already exists\n", base_file_directory);
+        printf("[INFO] Directory %s already exists\n", base_file_directory);
     } else {
-        printf("[DEBUG] Created directory %s\n", base_file_directory);
+        printf("[INFO] Created directory %s\n", base_file_directory);
+    }
+    int created2 = createRsaDirectoryIfNotExist(OTHER_PUBKEY_DIR);
+    if (created2 == 0) {
+        printf("[INFO] Directory %s already exists\n", OTHER_PUBKEY_DIR);
+    } else {
+        printf("[INFO] Created directory %s\n", OTHER_PUBKEY_DIR);
     }
 
     // Format file names for the host public key and private key.
     char* host_pubkey_filename = getRsaPublicKeyFileName(host_ip, host_port);
     char* host_privkey_filename = getRsaPrivateKeyFileName(host_ip, host_port);
-    printf("[DEBUG] Host key pair file names: %s, %s\n", host_pubkey_filename, host_privkey_filename);
+    printf("[INFO] Host key pair file names: %s, %s\n", host_pubkey_filename, host_privkey_filename);
     // RSA* server_pubkey = readPublicKeyFromFile(base_file_directory, host_pubkey_filename);
     // RSA* server_privkey = readPrivateKeyFromFile(base_file_directory, host_privkey_filename);
 
@@ -87,48 +101,56 @@ int main(int argc, char *argv[]) {
             break;
         } else if (strncmp(user_input, "message ", 8) == 0) {
             // User wants to message another user.
-            // Example: message 127.0.0.1 12345 hello!!!
+            // Example: message 127.0.0.1 12345 hi!!!
+            // Example: message 127.0.0.1 12347 hello!!!
             char recipient_ip[100];
             int recipient_port;
             char message[MAX_MESSAGE_LENGTH];
-            if (sscanf(user_input, "message %99s %d %[^\n]", recipient_ip, &recipient_port, message) == 3) {\
-                printf("[DEBUG] From user %s(%d), %s:%d\n", message, (int)strlen(message), recipient_ip, recipient_port);
-                // int recv_len = 0;
-                // int result = sendAndReceive(recipient_ip, recipient_port, message, strlen(message) + 1, &recv_len);
-                char* recipient_pubkey_file = getRsaPublicKeyFileName(recipient_ip, recipient_port);
-                // RSA* recipient_pubkey = readPublicKeyFromFile(OTHER_PUBKEY_DIR, recipient_pubkey_file);
-                // RSA* sender_privkey = readPrivateKeyFromFile(base_file_directory, host_privkey_filename);
-                // printf("[DEBUG] sender_privkey (begin)\n");
-                // PEM_write_RSAPrivateKey(stdout, sender_privkey, NULL, NULL, 0, NULL, NULL);
-                // printf("[DEBUG] sender_privkey (end)\n");
-                // int result = encryptedSendAndReceive(recipient_pubkey, sender_privkey, recipient_ip, recipient_port, message);
-                int result = encryptedSendAndReceive(base_file_directory, OTHER_PUBKEY_DIR, recipient_pubkey_file, host_privkey_filename, recipient_ip, recipient_port, message);
-                if (result == 1) {
-                    // printf("[DEBUG] received from server (%d): %s\n", recv_len, message);
-                    // printf("[DEBUG] received from server (%d): %s\n", (int)strlen(message), message);
-                    success = 1;
+            if (sscanf(user_input, "message %99s %d %[^\n]", recipient_ip, &recipient_port, message) == 3) {
+                if (recipient_port == host_port) {
+                    success = 0;
+                    printf("[WARN] Please do not send message to yourself.\n");
                 } else {
-                    printf("Failed to send message to %s:%d.\n", recipient_ip, recipient_port);
+    //                printf("[DEBUG] From user %s(%d), %s:%d\n", message, (int)strlen(message), recipient_ip, recipient_port);
+                    char* recipient_pubkey_file = getRsaPublicKeyFileName(recipient_ip, recipient_port);
+                    int result = encryptedSendAndReceive(base_file_directory, OTHER_PUBKEY_DIR, recipient_pubkey_file, host_privkey_filename, recipient_ip, recipient_port, message);
+                    if (result == 1) {
+                        // printf("[DEBUG] received from server (%d): %s\n", recv_len, message);
+                        // printf("[DEBUG] received from server (%d): %s\n", (int)strlen(message), message);
+                        success = 1;
+                    } else {
+                        printf("[WARN] Failed to send message to %s:%d.\n", recipient_ip, recipient_port);
+                    }
+                    free(recipient_pubkey_file);
                 }
-                free(recipient_pubkey_file);
             } else {
-                printf("Invalid input. Please use the format 'message <IP> <PORT> <MESSAGE>'.\n");
+                printf("[WARN] Invalid input. Please use the format 'message <IP> <PORT> <MESSAGE>'.\n");
             }
         } else if (strncmp(user_input, "keygen", 6) == 0) {
             // User wants to generate / regenerate RSA key pairs.
             success = 1;
-            generateKeyPairsAndSaveAsPem(base_file_directory, host_pubkey_filename, host_privkey_filename);
+            generateKeyPairsAndSaveAsPem(base_file_directory, OTHER_PUBKEY_DIR, host_pubkey_filename, host_privkey_filename);
         } else if (strncmp(user_input, "test", 4) == 0) {
             // User wants to verify the generated key paris.
             success = 1;
             testEncryptionDecryption(
                 "hello this is test", base_file_directory, host_pubkey_filename, host_privkey_filename);
+        } else if (strncmp(user_input, "debug on", 8) == 0) {
+            // User wants to turn on debug mode
+            success = 1;
+            debug_mode = 1;
+        } else if (strncmp(user_input, "debug off", 9) == 0) {
+            // User wants to turn on debug mode
+            success = 1;
+            debug_mode = 0;
+        } else {
+            printf("[WARN] Unrecognized input. Please try a different command.\n");
         }
 
-        if (success == 0) {
-            printf("Unrecognized input. Please try a different command.\n");
-            printUsage();
-        }
+//        if (success == 0) {
+//
+////            printUsage();
+//        }
     }
 
     return 0;

@@ -61,3 +61,13 @@ char* getFileDirectoryFromCliFlags(int argc, char* argv[], const char* default_v
 
     return file_directory;
 }
+
+int getDebugFromCliFlags(int argc, char* argv[], int default_value) {
+    // Check if the "debug" flag is provided
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--debug") == 0 || strcmp(argv[i], "-d") == 0) {
+            return 1;
+        }
+    }
+    return default_value;
+}
